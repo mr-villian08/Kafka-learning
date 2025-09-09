@@ -1,5 +1,6 @@
 const AccessorsAndMutators = require("../../utils/AccessorsAndMutators");
 const { failed, success } = require("../../utils/reply");
+const Contact = require("../Models/Contact");
 const User = require("../Models/User");
 
 module.exports = class UserController {
@@ -17,10 +18,13 @@ module.exports = class UserController {
   // ? *********************************************** Get active Users *********************************************** */
   static async activeUsers(req, res) {
     try {
-      const activeUsers = await User.find({
-        // status: "ONLINE",
-        _id: { $ne: req.user.id }, // Exclude self if needed
-      });
+      const authUserId = req.user.id; // Set by your auth middleware
+      const activeUsers = await Contact.find({
+        userId: authUserId,
+        contactId: authUserId,
+      })
+        .populate({ path: "contactUser", match: { status: "online" } })
+        .then((res) => res.map((c) => c.contactUser));
 
       return success(res, "Here are the active users.", activeUsers);
     } catch (error) {
@@ -110,14 +114,15 @@ module.exports = class UserController {
   }
 
   // ? *********************************************** Update all User Passwords *********************************************** */
-  static async updateAllPasswords(req, res) {
+  static async bulkUpdate(req, res) {
     try {
-      const updated = await User.updateMany(
-        {},
-        { password: AccessorsAndMutators.hashMake("Newone@890") }
-      );
+      if (req.body.password) {
+        req.body.password = AccessorsAndMutators.hashMake(req.body.password);
+      }
+
+      const updated = await User.updateMany({}, req.body);
       res.status(200).json({
-        message: "Passwords updated for all users",
+        message: "Users updated for all users",
         modifiedCount: updated.modifiedCount,
       });
     } catch (error) {

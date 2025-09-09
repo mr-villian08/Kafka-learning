@@ -23,7 +23,7 @@ router.post("/", UserController.create);
 router.post("/bulk", UserController.store);
 
 // ? ****************************************************** Bulk Password Update ****************************************************** */
-router.patch("/bulk-password", UserController.updateAllPasswords);
+router.patch("/bulk-update", UserController.bulkUpdate);
 
 // ? ****************************************************** Bulk Password Update ****************************************************** */
 router.patch("/:id", UserController.update);

@@ -43,16 +43,16 @@ module.exports = class ChatController {
 
       // Get messages for this chat
       const messages = await Message.find({ chatId: chatRoom._id })
-        .sort({ createdAt: -1 })
-        .populate("sender", "name username")
-        .populate("receiver", "name username");
+        // .sort({ createdAt: -1 })
+        .populate("sender", "name username image")
+        .populate("receiver", "name username image");
 
       // Mark is_sender for each message
       const messagesWithSenderFlag =
         messages.length > 0
           ? messages.map((msg) => ({
               ...msg.toObject(),
-              is_sender: msg.sender._id.toString() === authUserId,
+              isSender: msg.sender._id.toString() === authUserId,
             }))
           : [];
 
@@ -87,9 +87,9 @@ module.exports = class ChatController {
       const authUserId = req.user.id; // Set by your auth middleware
 
       // Find all chats where the user is a participant
-      const chats = await Chat.find({ participants: authUserId })
+      let chats = await Chat.find({ participants: authUserId })
         // .populate("participants", "name username email")
-        .populate("participants")
+        .populate("participants", "name username image")
         .lean();
 
       // For each chat, get messages and the other participant
@@ -97,8 +97,8 @@ module.exports = class ChatController {
         chats.map(async (chat) => {
           const messages = await Message.find({ chatId: chat._id })
             .sort({ createdAt: -1 })
-            .populate("sender", "name username")
-            .populate("receiver", "name username");
+            .populate("sender", "name username image")
+            .populate("receiver", "name username image");
 
           const participant = chat.participants.find(
             (p) => p._id.toString() !== authUserId
@@ -108,6 +108,7 @@ module.exports = class ChatController {
             ...chat,
             messages,
             participant,
+            lastMessage: messages[0] || null,
           };
         })
       );

@@ -8,9 +8,9 @@ const startMessageConsumer = async (io) => {
       eachMessage: async ({ topic, partition, message }) => {
         let receivedMessage = message.value.toString();
 
-        console.log(
-          `Message received from Kafka [topic: ${topic}, partition: ${partition}]: ${receivedMessage}`
-        );
+        // console.log(
+        //   `Message received from Kafka [topic: ${topic}, partition: ${partition}]: ${receivedMessage}`
+        // );
 
         receivedMessage = JSON.parse(receivedMessage);
         io.to(receivedMessage.chatId).emit("newMessage", receivedMessage);

@@ -22,16 +22,27 @@ module.exports = class MessageController {
       const messageData = req.body;
       messageData.sender = req.user.id;
 
-      const save = await Message.create(messageData);
+      const save = await Message.populate(await Message.create(messageData), [
+        { path: "sender", select: "name username image" },
+        { path: "receiver", select: "name username image" },
+      ]);
 
       if (!save) {
         throw new Error("Failed to send message.");
       }
 
-      // Send message to Kafka
-      await sendMessageToKafka(save);
+      const sentMessage = {
+        ...save._doc,
+        isSender: save._doc.sender._id.toString() === req.user.id,
+      };
 
-      return success(res, "Message sent successfully.", save);
+      // Send message to Kafka
+      await sendMessageToKafka({
+        ...save._doc,
+        isSender: false,
+      });
+
+      return success(res, "Message sent successfully.", sentMessage);
     } catch (error) {
       return failed(res, error.message);
     }
