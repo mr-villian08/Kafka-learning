@@ -17,17 +17,25 @@ module.exports = class AuthController {
   static async login(req, res) {
     try {
       const { usernameOrEmail, password } = req.body;
-      const email = usernameOrEmail;
 
-      const user = await User.findOne({ email });
+      // Find user by email or username
+      const user = await User.findOne({
+        $or: [{ email: usernameOrEmail }, { username: usernameOrEmail }],
+      });
 
       if (!user) {
-        throw new Error("Email does not exist. Try again!");
+        return failed(res, "User not found. Try again!", 404);
       }
 
-      if (!compareHash(password, user.password)) {
-        throw new Error("Password is incorrect. Try again!");
+      // Compare password
+      const isMatch = compareHash(password, user.password);
+      if (!isMatch) {
+        return failed(res, "Password is incorrect. Try again!", 401);
       }
+
+      // Update status
+      user.status = "online";
+      await user.save();
 
       const data = {
         id: user._id,
@@ -38,6 +46,23 @@ module.exports = class AuthController {
       const token = Token.createToken(data);
 
       return success(res, "Login successful", { user: data, token });
+    } catch (error) {
+      return failed(res, error.message);
+    }
+  }
+
+  // ? ****************************************** Logout ****************************************** */
+  static async logout(req, res) {
+    try {
+      const user = await User.findById(req.user.id);
+
+      if (!user) {
+        return failed(res, "User not found. Try again!", 404);
+      }
+      user.status = "offline";
+      user.lastSeenAt = new Date();
+      await user.save();
+      return success(res, "Logout successful");
     } catch (error) {
       return failed(res, error.message);
     }

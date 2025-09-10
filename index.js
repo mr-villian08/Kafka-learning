@@ -52,12 +52,15 @@ app.use(helmet());
 app.use(morgan("combined", { stream: accessLogStream }));
 
 const userSockets = {};
+
 // Socket.IO connection
 io.on("connection", (socket) => {
   // console.log("User connected:", socket.id);
   const userId = socket.handshake.auth.userId;
 
-  if (!userSockets[userId]) userSockets[userId] = [];
+  if (!userSockets[userId]) {
+    userSockets[userId] = [];
+  }
   userSockets[userId].push(socket.id);
   console.log("Current active sockets:", userSockets);
   socket.on("joinRoom", (roomId) => {

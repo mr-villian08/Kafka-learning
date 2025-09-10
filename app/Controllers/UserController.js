@@ -19,14 +19,18 @@ module.exports = class UserController {
   static async activeUsers(req, res) {
     try {
       const authUserId = req.user.id; // Set by your auth middleware
-      const activeUsers = await Contact.find({
-        userId: authUserId,
-        contactId: authUserId,
-      })
-        .populate({ path: "contactUser", match: { status: "online" } })
-        .then((res) => res.map((c) => c.contactUser));
+      const activeUsers = await Contact.find({ userId: authUserId })
+        .populate({
+          path: "contactId",
+          match: { status: "online" }, // Only populate if contact is online
+          select: "name email username status image lastSeenAt",
+        })
+        .lean();
 
-      return success(res, "Here are the active users.", activeUsers);
+      // Filter out contacts where contactId is null (not online)
+      const filteredContacts = activeUsers.filter((c) => c.contactId);
+
+      return success(res, "Here are the active users.", filteredContacts);
     } catch (error) {
       return failed(res, error.message);
     }
